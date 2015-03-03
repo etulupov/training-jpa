@@ -116,7 +116,6 @@ public class DatabaseInitializer implements ApplicationListener<ContextRefreshed
     private Set<GroupEntity> getRandomGroups(final List<GroupEntity> groups) {
         final Set<GroupEntity> result = new HashSet<>();
 
-
         for (int i = 0; i < RANDOM.nextInt(groups.size()) + 1; i++) {
             result.add(groups.get(RANDOM.nextInt(groups.size())));
         }

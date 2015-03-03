@@ -31,6 +31,7 @@ public final class ContactEntity {
 
     public static final String TABLE_GROUPS = "ContactGroup";
     public static final String GROUP_ID = "group_id";
+    public static final String GROUPS = "groups";
     public static final String CONTACT_ID = "contact_id";
 
     @Id

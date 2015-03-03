@@ -2,10 +2,10 @@ package com.noveogroup.tulupov.addressbook.database.dao.impl;
 
 import com.noveogroup.tulupov.addressbook.database.dao.GroupDao;
 import com.noveogroup.tulupov.addressbook.entity.GroupEntity;
-import org.hibernate.criterion.DetachedCriteria;
-import org.hibernate.criterion.Restrictions;
 import org.springframework.stereotype.Repository;
 
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
 import java.util.List;
 
 /**
@@ -19,16 +19,23 @@ public class GroupDaoImpl extends AbstractDaoImpl<Integer, GroupEntity> implemen
 
     @Override
     public List<GroupEntity> get(final List<Integer> ids) {
-        final DetachedCriteria criteria = DetachedCriteria.forClass(entityClass);
-        criteria.add(Restrictions.in("id", ids));
+        final CriteriaQuery<GroupEntity> criteria = entityManager.getCriteriaBuilder()
+                .createQuery(entityClass);
 
-        return hibernateTemplate.findByCriteria(criteria);
+        final Root<GroupEntity> root = criteria.from(entityClass);
+        criteria.select(root);
+        criteria.where(root.get("id").in(ids));
+
+        return entityManager.createQuery(criteria).getResultList();
     }
 
     @Override
     public List<GroupEntity> queryAll() {
-        final DetachedCriteria criteria = DetachedCriteria.forClass(entityClass);
+        final CriteriaQuery<GroupEntity> criteria = entityManager.getCriteriaBuilder()
+                .createQuery(entityClass);
 
-        return hibernateTemplate.findByCriteria(criteria);
+        criteria.select(criteria.from(entityClass));
+
+        return entityManager.createQuery(criteria).getResultList();
     }
 }

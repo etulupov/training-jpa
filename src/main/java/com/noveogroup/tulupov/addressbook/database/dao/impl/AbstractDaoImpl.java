@@ -2,17 +2,19 @@ package com.noveogroup.tulupov.addressbook.database.dao.impl;
 
 
 import com.noveogroup.tulupov.addressbook.database.dao.AbstractDao;
-import org.hibernate.SessionFactory;
-import org.hibernate.criterion.DetachedCriteria;
-import org.hibernate.criterion.Order;
-import org.hibernate.criterion.Projections;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.support.DataAccessUtils;
+import org.jdal.dao.jpa.JpaUtils;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.orm.hibernate3.HibernateTemplate;
 
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.persistence.Query;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Order;
+import javax.persistence.criteria.Root;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -23,34 +25,39 @@ import java.util.List;
  */
 public abstract class AbstractDaoImpl<K extends Serializable, E> implements AbstractDao<K, E> {
     protected Class<E> entityClass;
-    protected HibernateTemplate hibernateTemplate;
+
+    @PersistenceContext
+    protected EntityManager entityManager;
 
     public AbstractDaoImpl(final Class<E> entityClass) {
         this.entityClass = entityClass;
     }
 
-    @Autowired
-    public void setSessionFactory(final SessionFactory sessionFactory) {
-        this.hibernateTemplate = new HibernateTemplate(sessionFactory);
-    }
-
     @Override
     public void add(final E entity) {
-        hibernateTemplate.save(entity);
+
+
+
+//        DefaultTransactionDefinition def = new DefaultTransactionDefinition();
+//        def.setName("rootTransaction");
+//        def.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
+//        TransactionStatus status = txManager.getTransaction(def);
+        entityManager.persist(entity);
+//        txManager.commit(status);
     }
 
     @Override
     public void remove(final K key) {
-        final E entity = hibernateTemplate.load(entityClass, key);
-        hibernateTemplate.delete(entity);
+        final E entity = entityManager.getReference(entityClass, key);
+        entityManager.remove(entity);
     }
 
     @Override
     public E get(final K key) {
-        final E entity = hibernateTemplate.get(entityClass, key);
+        final E entity = entityManager.find(entityClass, key);
 
         if (entity != null) {
-            hibernateTemplate.refresh(entity);
+            entityManager.refresh(entity);
         }
 
         return entity;
@@ -58,39 +65,58 @@ public abstract class AbstractDaoImpl<K extends Serializable, E> implements Abst
 
     @Override
     public void update(final E entity) {
-        hibernateTemplate.merge(entity);
+        entityManager.merge(entity);
     }
 
 
     @Override
     @SuppressWarnings("unchecked")
     public List<E> query(final Pageable pageable) {
-        final DetachedCriteria criteria = DetachedCriteria.forClass(entityClass);
+        final CriteriaBuilder builder = entityManager.getCriteriaBuilder();
+        final CriteriaQuery<E> criteria = builder
+                .createQuery(entityClass);
+        final Root<E> root = criteria.from(entityClass);
+
+        criteria.select(root);
 
         return query(pageable, criteria);
     }
 
-    protected List<E> query(final Pageable pageable, final DetachedCriteria criteria) {
+    @SuppressWarnings("unchecked")
+    protected <T> List<E> query(final Pageable pageable, final CriteriaQuery<T> criteria) {
         final Sort sort = pageable.getSort();
 
         if (sort != null) {
+            final List<Order> orders = new ArrayList<Order>();
+            final CriteriaBuilder builder = entityManager.getCriteriaBuilder();
+            final Root<E> root = criteria.from(entityClass);
+
             for (final Sort.Order order : sort) {
-                criteria.addOrder(order.isAscending() ? Order.asc(order.getProperty())
-                        : Order.desc(order.getProperty()));
+                orders.add(order.isAscending() ? builder.asc(root.get(order.getProperty()))
+                        : builder.desc(root.get(order.getProperty())));
             }
+
+            criteria.orderBy(orders);
         }
 
-        return hibernateTemplate.findByCriteria(criteria,
-                pageable.getOffset(), pageable.getPageSize());
+        final Query query = entityManager.createQuery(criteria);
+        query.setFirstResult(pageable.getOffset());
+        query.setMaxResults(pageable.getPageSize());
+
+        return query.getResultList();
     }
 
     @Override
     public long count() {
-        return count(DetachedCriteria.forClass(entityClass));
+        final CriteriaBuilder builder = entityManager.getCriteriaBuilder();
+        final CriteriaQuery<E> criteriaQuery = builder.createQuery(entityClass);
+        final Root<E> root = criteriaQuery.from(entityClass);
+        criteriaQuery.select(root);
+
+        return count(criteriaQuery);
     }
 
-    protected long count(final DetachedCriteria criteria) {
-        return DataAccessUtils.longResult(hibernateTemplate.findByCriteria(criteria
-                .setProjection(Projections.rowCount())));
+    protected <T> long count(final CriteriaQuery<T> criteria) {
+        return JpaUtils.count(entityManager, criteria);
     }
 }

@@ -6,7 +6,6 @@ import com.noveogroup.tulupov.addressbook.entity.GroupEntity;
 import com.noveogroup.tulupov.addressbook.service.GroupService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -15,7 +14,7 @@ import java.util.List;
  * Group service implementation.
  */
 @Service
-@Transactional(isolation = Isolation.SERIALIZABLE)
+@Transactional
 public class GroupServiceImpl extends AbstractServiceImpl<Integer, GroupEntity> implements GroupService {
 
     private GroupDao groupDao;

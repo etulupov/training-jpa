@@ -37,4 +37,6 @@ public class GroupEntity {
     @Setter
     @Size(min = 3, max = 30, message = "{error.group.name.invalid_size}")
     private String name;
+
+
 }

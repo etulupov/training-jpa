@@ -7,6 +7,7 @@ import com.noveogroup.tulupov.addressbook.util.PaginationUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.Serializable;
 
@@ -16,6 +17,7 @@ import java.io.Serializable;
  * @param <K> the key
  * @param <E> the entity
  */
+@Transactional
 public abstract class AbstractServiceImpl<K extends Serializable, E> implements AbstractService<K, E> {
 
     private AbstractDao<K, E> dao;
